@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>鋁箔常數更新</title>
+  <style>
+    body { font-family: "Microsoft JhengHei", Arial; max-width: 520px; margin: 0 auto; padding: 18px; }
+    h2 { text-align: center; margin: 10px 0 14px; }
+    .row { margin: 10px 0; }
+    label { font-weight: 700; color: #268bd2; display: block; margin-bottom: 6px; }
+    input { width: 100%; padding: 10px; font-size: 16px; box-sizing: border-box; }
+    button, a.btn {
+      padding: 10px; font-size: 16px; font-weight: 800; cursor: pointer;
+      border: 0; border-radius: 8px; text-decoration: none; display: inline-block; text-align: center;
+    }
+    .btnRow { display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap; }
+    #saveBtn { background: #f6f7d1; color: #0a7a2a; flex: 1; }
+    #clearBtn { background: #ffecec; color: #b00020; flex: 1; }
+    a.btn { background: #eef6ff; color: #0b63b6; flex: 1; }
+    .card { background: #fafafa; border: 1px solid #eee; border-radius: 10px; padding: 12px; margin-top: 12px; }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { border-bottom: 1px solid #eee; padding: 8px; text-align: left; font-size: 14px; }
+    th { background: #f5f5f5; }
+    .hint { font-size: 13px; color: #666; margin-top: 8px; line-height: 1.5; }
+  </style>
+</head>
+
+<body>
+  <h2>鋁箔常數更新</h2>
+
+  <div class="card" id="currentBox">讀取中…</div>
+
+  <div class="row">
+    <label>更新鋁箔厚度 T：</label>
+    <input type="number" id="T" inputmode="decimal" placeholder="例如 20" />
+  </div>
+
+  <div class="row">
+    <label>更新鋁箔重量 W：</label>
+    <input type="number" id="W" inputmode="decimal" placeholder="例如 7.7022" />
+  </div>
+
+  <div class="btnRow">
+    <button id="saveBtn">儲存並記錄</button>
+    <a class="btn" href="index.html">回到計算器</a>
+    <button id="clearBtn">清除歷史紀錄</button>
+  </div>
+
+  <div class="card">
+    <b>鋁箔常數歷史紀錄（日期 / 厚度 T / 重量 W）</b>
+    <div id="tableWrap" style="margin-top:10px;"></div>
+    <div class="hint">
+      ※ 會儲存在此瀏覽器（localStorage）。<br>
+      ※ 想要跨裝置同步，需要改成連後端/資料庫（之後我也可以幫你）。
+    </div>
+  </div>
+
+<script>
+  const DEFAULT_W = 7.7022;
+  const DEFAULT_T = 20;
+
+  function nowString() {
+    const d = new Date();
+    const pad = n => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  }
+
+  function getLatest() {
+    const raw = localStorage.getItem("foil_constants_latest");
+    if (!raw) return { W: DEFAULT_W, T: DEFAULT_T, updatedAt: null };
+    try {
+      const obj = JSON.parse(raw);
+      const W = Number(obj.W);
+      const T = Number(obj.T);
+      if (!isFinite(W) || !isFinite(T)) throw new Error("bad");
+      return { W, T, updatedAt: obj.updatedAt || null };
+    } catch {
+      return { W: DEFAULT_W, T: DEFAULT_T, updatedAt: null };
+    }
+  }
+
+  function setLatest(W, T, updatedAt) {
+    localStorage.setItem("foil_constants_latest", JSON.stringify({ W, T, updatedAt }));
+  }
+
+  function getHistory() {
+    const raw = localStorage.getItem("foil_constants_history");
+    if (!raw) return [];
+    try {
+      const arr = JSON.parse(raw);
+      return Array.isArray(arr) ? arr : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function setHistory(arr) {
+    localStorage.setItem("foil_constants_history", JSON.stringify(arr));
+  }
+
+  function renderCurrent() {
+    const {W, T, updatedAt} = getLatest();
+    const at = updatedAt ? `（最後更新：${updatedAt}）` : "（目前使用預設值）";
+    document.getElementById("currentBox").innerHTML =
+      `<b>目前使用中的鋁箔常數</b><br>W = ${W}<br>T = ${T}<br>${at}`;
+    // 預填輸入框
+    document.getElementById("W").value = W;
+    document.getElementById("T").value = T;
+  }
+
+  function renderHistory() {
+    const arr = getHistory();
+    if (arr.length === 0) {
+      document.getElementById("tableWrap").innerHTML = "<i>尚無紀錄</i>";
+      return;
+    }
+
+    const rows = arr
+      .slice()              // copy
+      .reverse()            // 最新在最上面
+      .map(r => `<tr><td>${r.date}</td><td>${r.T}</td><td>${r.W}</td></tr>`)
+      .join("");
+
+    document.getElementById("tableWrap").innerHTML = `
+      <table>
+        <thead><tr><th>日期</th><th>鋁箔厚 T</th><th>鋁箔重 W</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    `;
+  }
+
+  document.getElementById("saveBtn").addEventListener("click", () => {
+    const W = Number(document.getElementById("W").value);
+    const T = Number(document.getElementById("T").value);
+
+    if (!isFinite(W) || !isFinite(T)) {
+      alert("請輸入有效數值");
+      return;
+    }
+    if (T <= 0) {
+      alert("T 必須 > 0");
+      return;
+    }
+
+    const date = nowString();
+    setLatest(W, T, date);
+
+    const hist = getHistory();
+    hist.push({ date, W, T });
+    setHistory(hist);
+
+    renderCurrent();
+    renderHistory();
+    alert("已儲存並記錄！");
+  });
+
+  document.getElementById("clearBtn").addEventListener("click", () => {
+    if (!confirm("確定要清除所有歷史紀錄嗎？")) return;
+    localStorage.removeItem("foil_constants_history");
+    // 不強制清 latest，保留目前值；你想一起清也可以
+    renderHistory();
+    alert("已清除歷史紀錄");
+  });
+
+  // 初始化
+  renderCurrent();
+  renderHistory();
+</script>
+</body>
+</html>
