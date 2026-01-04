@@ -55,7 +55,7 @@ const DEFAULT_W = 7.7022;
 const DEFAULT_T = 20;
 
 function getFoilConstants() {
-  const raw = localStorage.getItem("foil_constants_lastest");
+  const raw = localStorage.getItem("foil_constants_latest");
   if(!raw){
     return {W:DEFAULT_W, T:DEFAULT_T};
   }
@@ -105,19 +105,19 @@ function focusNext() {
 function focusPrev() {
   const i = focusables.indexOf(document.activeElement);
   const prev = (i-1 + focusables.length) % focusables.length;
-  focusable[prev].focus();
+  focusables[prev].focus();
 }
 
 function clearCurrent() {
   const el = document.activeElement;
   if (el && el.tagName === "INPUT") {
-    el.Value = "";
+    el.value = "";
   }
 }
 
 document.addEventListener("keydown", function (e) {
 
-  const ket =e.code;
+  const key =e.code;
 
   switch (key) {
 
@@ -156,6 +156,7 @@ document.addEventListener("keydown", function (e) {
 
 </body>
 </html>
+
 
 
 
