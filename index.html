@@ -38,20 +38,40 @@
 <h2>壓實密度計算器</h2>
 
 <label>電極厚度 t：</label>
-<input type="number" id="t">
+<input type="number" id="t" tabindex="1" autofocus>
 
 <label>電極重量 w：</label>
-<input type="number" id="w">
+<input type="number" id="w" tabindex="2">
 
-<button onclick="calc()">計算</button>
+<button id="calcBtn" onclick="calc()" tabindex ="3" >計算</button>
+<button onclick="location.href='foil.html'" tabindex ="4">
+  更新鋁箔常數 (W/T)
+</button>
 
 <div id="result"></div>
 
 <script>
-const W = 7.7022;
-const T = 20;
+const DEFAULT_W = 7.7022;
+const DEFAULT_T = 20;
 
+function getFoilConstants() {
+  const raw = localStorage.getItem("foil_constants_lastest");
+  if(!raw){
+    return {W:DEFAULT_W, T:DEFAULT_T};
+  }
+  try {
+    const obj = JSON.parse(raw);
+    return {
+      W: Number(obj.W),
+      T: Number(obj.T)
+    };
+  } catch {
+    return {W: DEFAULT_W, T: DEFAULT_T};
+  }
+}
+  
 function calc() {
+  const {W,T} = getFoilConstants();
   const w = parseFloat(document.getElementById("w").value);
   const t = parseFloat(document.getElementById("t").value);
 
@@ -59,7 +79,7 @@ function calc() {
     alert("請輸入完整數值");
     return;
   }
-
+  
   if (t <= T) {
     alert("電極厚度必須大於鋁箔厚度");
     return;
@@ -69,9 +89,73 @@ function calc() {
   document.getElementById("result").innerText =
     "壓實密度 D = " + D.toFixed(2);
 }
+
+const focusables = [
+  document.getElementById("t"),
+  document.getElementById("w"),
+  document.getElementById("calcBtn")
+];
+
+function focusNext() {
+  const i = focusables.indexOf(document.activeElement);
+  const next = (i+1)% focusables.length;
+  focusables[next].focus();
+}
+
+function focusPrev() {
+  const i = focusables.indexOf(document.activeElement);
+  const prev = (i-1 + focusables.length) % focusables.length;
+  focusable[prev].focus();
+}
+
+function clearCurrent() {
+  const el = document.activeElement;
+  if (el && el.tagName === "INPUT") {
+    el.Value = "";
+  }
+}
+
+document.addEventListener("keydown", function (e) {
+
+  const ket =e.code;
+
+  switch (key) {
+
+    case "NumpadAdd":
+      e.preventDefault();
+      focusNext();
+      break;
+
+    case "NumpadSubstract":
+      e.preventDefault();
+      focusPrev();
+      break;
+
+    case "NumpadEnter":
+      e.preventDefault();
+      document.getElementById("calcBtn").click();
+      break;
+
+    case "NumberMultiply":
+      e.preventDefault();
+      window.location.href = "foil.html";
+      break;
+
+    case "NumpadDivide":
+      e.preventDefault();
+      window.location.href = "index.html";
+      break;
+
+    case "Escape":
+      e.preventDefault();
+      clearCurrent();
+      break;
+  }
+});
 </script>
 
 </body>
 </html>
+
 
 
